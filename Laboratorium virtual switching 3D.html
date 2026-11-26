@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060d17">
+<title>Laboratorium Virtual Switching Jaringan Komputer 3D</title>
+<style>
+:root{--bg:#060d17;--panel:rgba(10,24,40,.82);--line:rgba(0,229,255,.32);--cyan:#00e5ff;--text:#e3f4ff;--dim:#8fb0c6;--ok:#3ddc84;--bad:#ff5c72;--warn:#ffc247}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:clamp(14px,calc(.5vw + 7px),22px)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:rgba(0,229,255,.07);border:1px solid var(--line);border-radius:.55rem;min-height:2.75rem;padding:.35rem .75rem;touch-action:manipulation}
+button:hover{background:rgba(0,229,255,.16)}
+button:disabled{opacity:.45;cursor:default}
+button[aria-pressed="true"],button.on{background:var(--cyan);color:#03121c;border-color:var(--cyan);font-weight:600}
+:focus-visible{outline:2px solid var(--warn);outline-offset:2px}
+[hidden]{display:none!important}
+#app{display:grid;height:100vh;height:100dvh;padding:.5rem;gap:.5rem;grid-template-columns:17rem minmax(0,1fr) 22rem;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head head head" "left main right" "bar bar bar"}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 0 18px rgba(0,229,255,.08)}
+header{grid-area:head;display:flex;align-items:center;gap:.75rem;padding:.5rem .8rem}
+header h1{font-size:1.15rem;line-height:1.25;flex:1;min-width:0}
+header h1 span{color:var(--cyan)}
+.chip{border:1px solid var(--line);border-radius:.55rem;padding:.25rem .7rem;line-height:1.3}
+.chip small{display:block;color:var(--dim);font-size:.68rem;text-transform:uppercase}
+.chip b{font-size:.88rem;white-space:nowrap}
+.mob{display:none}
+#catalog{grid-area:left;display:flex;flex-direction:column;gap:.55rem;padding:.65rem;min-height:0}
+#search{width:100%;min-height:2.75rem;padding:.4rem .75rem;border-radius:.55rem;border:1px solid var(--line);background:rgba(0,0,0,.3)}
+#filters{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
+#filters button{min-height:2.3rem;font-size:.84rem}
+#list{overflow:auto;display:flex;flex-direction:column;gap:.4rem;min-height:0}
+.item{display:flex;align-items:center;gap:.6rem;text-align:left;padding:.5rem .6rem;flex-shrink:0}
+.item i{font-style:normal;width:2rem;height:2rem;border-radius:.45rem;display:grid;place-items:center;border:1px solid var(--line);color:var(--cyan);font-weight:700;flex-shrink:0}
+.item b{display:block;font-size:.9rem}
+.item small{color:var(--dim);font-size:.74rem}
+.item[aria-current="true"]{background:rgba(0,229,255,.2);border-color:var(--cyan);box-shadow:inset 3px 0 0 var(--cyan)}
+main{grid-area:main;display:flex;flex-direction:column;gap:.5rem;min-height:0;min-width:0}
+#stage{position:relative;flex:1;min-height:0;overflow:hidden;border:1px solid var(--line);border-radius:.8rem;background:radial-gradient(ellipse at 50% 62%,#0d2a44 0%,#060d17 68%)}
+#gl{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
+#gl:active{cursor:grabbing}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;width:2.1rem;height:2.1rem;margin:-1.05rem 0 0 -1.05rem;min-height:0;padding:0;border-radius:50%;pointer-events:auto;background:rgba(3,20,32,.88);border:2px solid var(--cyan);color:var(--cyan);font-weight:700;font-size:.85rem;box-shadow:0 0 10px var(--cyan)}
+.pin span{position:absolute;left:2.25rem;top:50%;transform:translateY(calc(-50% + var(--dy,0px)));white-space:nowrap;background:rgba(3,16,28,.86);border:1px solid var(--line);border-radius:.35rem;padding:.1rem .45rem;color:var(--text);font-size:.74rem;font-weight:500;pointer-events:none}
+.pin.flip span{left:auto;right:2.25rem}
+.pin.sel{background:var(--warn);border-color:#fff;color:#201400;box-shadow:0 0 16px var(--warn);z-index:2}
+.pin.right{background:var(--ok);border-color:#fff;color:#012210}
+.pin.wrong{background:var(--bad);border-color:#fff;color:#26000a}
+.pin.cut{opacity:.35}
+#hint{position:absolute;left:.6rem;top:.5rem;font-size:.72rem;color:var(--dim);pointer-events:none;max-width:70%}
+#ask{position:absolute;left:50%;bottom:.6rem;transform:translateX(-50%);width:min(92%,34rem);padding:.5rem .8rem;text-align:center;font-size:.88rem;pointer-events:none}
+#tag{position:absolute;left:0;top:0;font-size:.72rem;font-weight:700;color:#06121c;background:var(--warn);border-radius:.3rem;padding:0 .35rem;pointer-events:none;white-space:nowrap}
+#nogl{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:1.5rem}
+#sim{display:grid;grid-template-columns:12rem minmax(0,1fr) minmax(0,1.25fr);gap:.6rem;padding:.6rem;height:15rem;flex-shrink:0}
+#sim>div{min-height:0;overflow:auto;display:flex;flex-direction:column;gap:.35rem}
+#sim label{font-size:.75rem;color:var(--dim)}
+#sim .ctl{display:grid;grid-template-columns:1fr 1fr;align-content:start}
+#sim .ctl button{grid-column:1/-1;flex-shrink:0}
+#sim select{width:100%;min-height:2.4rem;background:#0b1c2e;border:1px solid var(--line);border-radius:.45rem;padding:.2rem .4rem}
+#sim h3,.sec h3{font-size:.8rem;color:var(--cyan);text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+th,td{border-bottom:1px solid rgba(0,229,255,.18);padding:.28rem .3rem;text-align:left}
+th{color:var(--dim);font-weight:500}
+td.mono{font-family:ui-monospace,Consolas,monospace}
+tr.new td{background:rgba(61,220,132,.2)}
+#log{list-style:none;font-size:.74rem;display:flex;flex-direction:column;gap:.25rem}
+#log li{border-left:3px solid var(--dim);padding:.12rem .45rem;background:rgba(0,0,0,.22)}
+#log li.learn{border-color:var(--cyan)}#log li.flood{border-color:var(--warn)}#log li.fwd{border-color:var(--ok)}#log li.drop{border-color:var(--bad)}
+#log b{margin-right:.3rem}
+aside#info{grid-area:right;display:flex;flex-direction:column;min-height:0;padding:.65rem;gap:.55rem}
+#tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem}
+#tabs button{font-size:.84rem;padding:.3rem}
+#body{overflow:auto;min-height:0;flex:1;display:flex;flex-direction:column;gap:.65rem}
+.sec{display:flex;flex-direction:column;gap:.4rem}
+.sec p{font-size:.86rem;line-height:1.55;color:#c8e0f0}
+.params{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.param{border:1px solid var(--line);border-radius:.5rem;padding:.4rem .55rem;background:rgba(0,0,0,.2)}
+.param small{display:block;color:var(--dim);font-size:.7rem}
+.param b{font-size:.84rem}
+.pinrow{text-align:left;display:flex;gap:.55rem;align-items:flex-start;font-size:.82rem;flex-shrink:0}
+.pinrow i{font-style:normal;font-weight:700;color:var(--cyan)}
+.pinrow.on i{color:#03121c}
+.pinrow small{display:block;font-weight:400;opacity:.85;line-height:1.45;margin-top:.15rem}
+.fault{border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:.55rem;padding:.55rem .65rem;display:flex;flex-direction:column;gap:.35rem;flex-shrink:0}
+.fault h4{font-size:.9rem}
+.score{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--cyan);border-radius:.6rem;padding:.5rem .75rem}
+.score b{font-size:1.6rem;color:var(--cyan)}
+.fb{font-size:.86rem;border-radius:.5rem;padding:.5rem .65rem;border:1px solid var(--line)}
+.fb.ok{border-color:var(--ok);background:rgba(61,220,132,.12)}.fb.no{border-color:var(--bad);background:rgba(255,92,114,.12)}
+.answers{display:grid;grid-template-columns:repeat(5,1fr);gap:.35rem}
+#toolbar{grid-area:bar;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.4rem .5rem;padding:.45rem}
+.slice{display:flex;align-items:center;gap:.35rem}
+.slice button{min-width:4.4rem}
+.slice input{width:6.5rem;height:2.75rem;accent-color:var(--cyan)}
+.slice input:disabled{opacity:.3}
+#toolbar>button{font-size:.84rem}
+/* Smartboard / layar sentuh besar */
+@media (pointer:coarse) and (min-width:1300px){button{min-height:3.2rem}.pin{width:2.6rem;height:2.6rem;margin:-1.3rem 0 0 -1.3rem}.pin span{left:2.75rem}.pin.flip span{left:auto;right:2.75rem}.slice input{width:8rem}}
+/* Tablet & laptop kecil */
+@media (max-width:1180px){#app{grid-template-columns:14rem minmax(0,1fr) 18rem}header .chip.cat{display:none}#sim{grid-template-columns:11rem 1fr;height:17rem;overflow:auto}#sim>div:last-child{grid-column:1/-1;min-height:7rem}}
+/* Ponsel & tablet tegak: katalog dan panel menjadi laci */
+@media (max-width:900px){
+ #app{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "main" "bar";padding:.35rem;gap:.35rem}
+ header{flex-wrap:wrap;gap:.4rem;padding:.4rem .5rem}
+ header h1{font-size:.95rem;flex-basis:100%}
+ header .chip{flex:1;min-width:0;overflow:hidden}header .chip b{display:block;overflow:hidden;text-overflow:ellipsis;font-size:.78rem}
+ header .chip.cat{display:block;flex:0 0 auto}
+ .mob{display:inline-block;font-size:.82rem}
+ #catalog,aside#info{position:fixed;top:0;bottom:0;z-index:20;width:min(88vw,23rem);background:rgba(6,17,30,.97);transition:transform .25s,visibility .25s;visibility:hidden;border-radius:0}
+ #catalog{left:0;transform:translateX(-105%)}aside#info{right:0;transform:translateX(105%)}
+ #catalog.open,aside#info.open{transform:none;visibility:visible}
+ .close{display:block!important}
+ #sim{display:flex;flex-direction:column;height:40%;min-height:11rem;overflow:auto}
+ #sim>div,#sim>div:last-child{overflow:visible;flex-shrink:0;min-height:0}
+ #sim .ctl button{grid-column:auto}
+ #toolbar{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
+ #toolbar>*{flex-shrink:0}
+ .pin span{font-size:.66rem;max-width:8.5rem;overflow:hidden;text-overflow:ellipsis}
+ #hint{display:none}
+}
+@media (max-height:520px) and (orientation:landscape){
+ html{font-size:12px}header h1{flex-basis:auto}main{flex-direction:row}#sim{display:flex;flex-direction:column;width:42%;height:auto;overflow:auto}#sim>div,#sim>div:last-child{overflow:visible;flex-shrink:0;min-height:0}
+}
+.close{display:none;align-self:flex-end;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="app">
+ <header class="panel">
+  <h1><span>Laboratorium Virtual</span> Switching Jaringan Komputer 3D</h1>
+  <button class="mob" id="openCat" aria-controls="catalog">☰ Katalog</button>
+  <div class="chip"><small>Perangkat aktif</small><b id="hName">-</b></div>
+  <div class="chip cat"><small>Kategori</small><b id="hCat">-</b></div>
+  <button class="mob" id="openInfo" aria-controls="info">ⓘ Panel</button>
+ </header>
+ <nav id="catalog" class="panel" aria-label="Katalog">
+  <button class="close">✕ Tutup</button>
+  <input id="search" type="search" placeholder="Cari perangkat atau konsep…" aria-label="Cari">
+  <div id="filters"></div>
+  <div id="list"></div>
+ </nav>
+ <main>
+  <div id="stage">
+   <canvas id="gl" tabindex="0" aria-label="Tampilan model 3D"></canvas>
+   <div id="pins"></div>
+   <div id="tag" hidden></div>
+   <div id="hint">1 jari / klik kiri: putar · 2 jari: zoom &amp; geser · klik kanan: geser · roda: zoom</div>
+   <div id="ask" class="panel" hidden></div>
+   <div id="nogl" hidden>Peramban ini tidak dapat menjalankan WebGL. Aktifkan akselerasi grafis atau gunakan peramban terbaru.</div>
+  </div>
+  <section id="sim" class="panel" hidden aria-label="Simulasi switching">
+   <div class="ctl">
+    <label>Pengirim<select id="src"></select></label>
+    <label>Tujuan<select id="dst"></select></label>
+    <button id="send" class="on">▶ Kirim Frame</button>
+    <button id="clearMac">Reset Tabel MAC</button>
+   </div>
+   <div><h3>Tabel MAC Switch</h3><table><thead><tr><th>Port</th><th>Alamat MAC</th><th>Host</th></tr></thead><tbody id="mac"></tbody></table></div>
+   <div><h3>Log Switching</h3><ul id="log" aria-live="polite"></ul></div>
+  </section>
+ </main>
+ <aside id="info" class="panel">
+  <button class="close">✕ Tutup</button>
+  <div id="tabs" role="tablist">
+   <button role="tab" data-tab="struktur">Struktur</button>
+   <button role="tab" data-tab="gangguan">Gangguan</button>
+   <button role="tab" data-tab="kuis">Kuis 3D</button>
+  </div>
+  <div id="body"></div>
+ </aside>
+ <div id="toolbar" class="panel" role="toolbar" aria-label="Alat tampilan">
+  <div class="slice"><button data-axis="0" aria-pressed="false">Iris X</button><input type="range" min="0" max="100" value="50" data-range="0" aria-label="Posisi irisan X" disabled></div>
+  <div class="slice"><button data-axis="1" aria-pressed="false">Iris Y</button><input type="range" min="0" max="100" value="50" data-range="1" aria-label="Posisi irisan Y" disabled></div>
+  <div class="slice"><button data-axis="2" aria-pressed="false">Iris Z</button><input type="range" min="0" max="100" value="50" data-range="2" aria-label="Posisi irisan Z" disabled></div>
+  <button data-opt="xray" aria-pressed="false">X-Ray</button>
+  <button data-opt="wire" aria-pressed="false">Wireframe</button>
+  <button data-opt="pins" aria-pressed="true">Pin Hotspot</button>
+  <button data-opt="spin" aria-pressed="false">Putar Otomatis</button>
+  <button data-opt="live" aria-pressed="true">Simulasi Hidup</button>
+  <button id="reset">⟲ Reset Kamera</button>
+ </div>
+</div>
+<script>
+'use strict';
+/* ========== 1. MATEMATIKA ========== */
+const M = {
+  mul(a, b) {
+    const o = new Float32Array(16);
+    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++)
+      o[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+    return o;
+  },
+  persp(fov, asp, n, f) {
+    const t = 1 / Math.tan(fov / 2);
+    return new Float32Array([t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]);
+  },
+  lookAt(e, c) {
+    const z = V.norm(V.sub(e, c)), x = V.norm(V.cross([0,1,0], z)), y = V.cross(z, x);
+    return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -V.dot(x,e),-V.dot(y,e),-V.dot(z,e),1]);
+  },
+  /* matriks model: translasi * rotY * rotX * rotZ * skala */
+  trs(p, r, s) {
+    const [cx,sx] = [Math.cos(r[0]), Math.sin(r[0])], [cy,sy] = [Math.cos(r[1]), Math.sin(r[1])], [cz,sz] = [Math.cos(r[2]), Math.sin(r[2])];
+    return new Float32Array([
+      (cy*cz+sy*sx*sz)*s[0], (cx*sz)*s[0], (-sy*cz+cy*sx*sz)*s[0], 0,
+      (-cy*sz+sy*sx*cz)*s[1], (cx*cz)*s[1], (sy*sz+cy*sx*cz)*s[1], 0,
+      (sy*cx)*s[2], (-sx)*s[2], (cy*cx)*s[2], 0,
+      p[0], p[1], p[2], 1]);
+  },
+  normal(m) {
+    const o = new Float32Array(9);
+    for (let c = 0; c < 3; c++) {
+      const l = m[c*4]**2 + m[c*4+1]**2 + m[c*4+2]**2 || 1;
+      for (let r = 0; r < 3; r++) o[c*3+r] = m[c*4+r] / l;
+    }
+    return o;
+  }
+};
+const V = {
+  add: (a,b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]],
+  sub: (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
+  mul: (a,s) => [a[0]*s, a[1]*s, a[2]*s],
+  dot: (a,b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2],
+  cross: (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]],
+  norm(a) { const l = Math.hypot(a[0],a[1],a[2]) || 1; return [a[0]/l, a[1]/l, a[2]/l]; },
+  /* titik pada garis patah, t dari 0 sampai 1 */
+  along(path, t) {
+    const len = []; let total = 0;
+    for (let i = 1; i < path.length; i++) { const d = Math.hypot(...V.sub(path[i], path[i-1])); len.push(d); total += d; }
+    let d = Math.min(Math.max(t,0),1) * total;
+    for (let i = 0; i < len.length; i++) {
+      if (d <= len[i] || i === len.length-1) return V.add(path[i], V.mul(V.sub(path[i+1], path[i]), len[i] ? Math.min(d/len[i],1) : 0));
+      d -= len[i];
+    }
+    return path[0];
+  },
+  /* kurva Catmull-Rom halus untuk kabel */
+  smooth(pts, n = 10) {
+    const out = [];
+    for (let i = 0; i < pts.length-1; i++) {
+      const p0 = pts[Math.max(i-1,0)], p1 = pts[i], p2 = pts[i+1], p3 = pts[Math.min(i+2,pts.length-1)];
+      for (let j = 0; j < n; j++) {
+        const t = j/n, t2 = t*t, t3 = t2*t;
+        out.push([0,1,2].map(k => .5*(2*p1[k] + (-p0[k]+p2[k])*t + (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2 + (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)));
+      }
+    }
+    out.push(pts[pts.length-1]);
+    return out;
+  }
+};
+
+/* ========== 2. GEOMETRI PROSEDURAL (urutan segitiga berlawanan jarum jam) ========== */
+const Geo = {
+  box() {
+    const p = [], n = [], idx = [];
+    [[[1,0,0],[0,0,-1],[0,1,0]], [[-1,0,0],[0,0,1],[0,1,0]], [[0,1,0],[1,0,0],[0,0,-1]],
+     [[0,-1,0],[1,0,0],[0,0,1]], [[0,0,1],[1,0,0],[0,1,0]], [[0,0,-1],[-1,0,0],[0,1,0]]].forEach(([nn,u,v], f) => {
+      [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b]) => {
+        p.push(...[0,1,2].map(k => .5*(nn[k] + a*u[k] + b*v[k]))); n.push(...nn);
+      });
+      const s = f*4; idx.push(s,s+1,s+2, s,s+2,s+3);
+    });
+    return {p, n, idx};
+  },
+  cylinder(seg = 24) {
+    const p = [], n = [], idx = [];
+    for (let i = 0; i <= seg; i++) {
+      const a = i/seg*Math.PI*2, c = Math.cos(a), s = Math.sin(a);
+      p.push(c,-.5,s, c,.5,s); n.push(c,0,s, c,0,s);
+    }
+    for (let i = 0; i < seg; i++) { const k = i*2; idx.push(k,k+1,k+2, k+2,k+1,k+3); }
+    [-1,1].forEach(side => {
+      const base = p.length/3; p.push(0,side*.5,0); n.push(0,side,0);
+      for (let i = 0; i <= seg; i++) { const a = i/seg*Math.PI*2; p.push(Math.cos(a),side*.5,Math.sin(a)); n.push(0,side,0); }
+      for (let i = 0; i < seg; i++) side > 0 ? idx.push(base,base+i+2,base+i+1) : idx.push(base,base+i+1,base+i+2);
+    });
+    return {p, n, idx};
+  },
+  sphere(la = 12, lo = 18) {
+    const p = [], n = [], idx = [];
+    for (let i = 0; i <= la; i++) for (let j = 0; j <= lo; j++) {
+      const t = i/la*Math.PI, f = j/lo*Math.PI*2, v = [Math.sin(t)*Math.cos(f), Math.cos(t), Math.sin(t)*Math.sin(f)];
+      p.push(...v); n.push(...v);
+    }
+    for (let i = 0; i < la; i++) for (let j = 0; j < lo; j++) {
+      const a = i*(lo+1)+j, b = a+lo+1; idx.push(a,a+1,b, b,a+1,b+1);
+    }
+    return {p, n, idx};
+  },
+  /* tabung mengikuti jalur; filter dipakai untuk belang pada kabel */
+  tube(path, rad, sides = 8, filter) {
+    const p = [], n = [], idx = []; let side = null;
+    path.forEach((c, i) => {
+      const t = V.norm(V.sub(path[Math.min(i+1,path.length-1)], path[Math.max(i-1,0)]));
+      let ref = side || (Math.abs(t[1]) < .9 ? [0,1,0] : [1,0,0]);
+      side = V.norm(V.sub(ref, V.mul(t, V.dot(ref,t))));
+      const bi = V.cross(t, side);
+      for (let j = 0; j <= sides; j++) {
+        const a = j/sides*Math.PI*2, d = V.add(V.mul(side, Math.cos(a)), V.mul(bi, Math.sin(a)));
+        p.push(...V.add(c, V.mul(d, rad))); n.push(...d);
+      }
+    });
+    for (let i = 0; i < path.length-1; i++) {
+      if (filter && !filter(i)) continue;
+      for (let j = 0; j < sides; j++) { const a = i*(sides+1)+j, b = a+sides+1; idx.push(a,a+1,b, b,a+1,b+1); }
+    }
+    return {p, n, idx};
+  }
+};
+
+/* ========== 3. RENDERER WEBGL ========== */
+const VS = `
+attribute vec3 aPos; attribute vec3 aNor;
+uniform mat4 uVP, uM; uniform mat3 uN;
+varying vec3 vN, vW;
+void main(){ vec4 w = uM*vec4(aPos,1.0); vW = w.xyz; vN = uN*aNor; gl_Position = uVP*w; }`;
+const FS = `
+precision mediump float;
+varying vec3 vN, vW;
+uniform vec3 uColor, uEye, uClip, uClipOn;
+uniform float uAlpha, uEm, uXray, uFlat;
+void main(){
+  if((uClipOn.x>0.5 && vW.x>uClip.x) || (uClipOn.y>0.5 && vW.y>uClip.y) || (uClipOn.z>0.5 && vW.z>uClip.z)) discard;
+  if(uFlat>0.5){ gl_FragColor = vec4(uColor, uAlpha); return; }
+  vec3 N = normalize(vN), E = normalize(uEye - vW);
+  if(dot(N,E) < 0.0) N = -N;
+  if(uXray>0.5){
+    float rim = pow(1.0 - abs(dot(N,E)), 2.0);
+    gl_FragColor = vec4(mix(uColor, vec3(0.0,0.9,1.0), 0.75), 0.07 + rim*0.4); return;
+  }
+  float d = max(dot(N, normalize(vec3(0.4,0.9,0.55))), 0.0);
+  float d2 = max(dot(N, normalize(vec3(-0.6,0.2,-0.5))), 0.0);
+  float s = pow(max(dot(reflect(-normalize(vec3(0.4,0.9,0.55)), N), E), 0.0), 24.0);
+  vec3 c = uColor*(0.42 + 0.62*d) + uColor*vec3(0.1,0.35,0.5)*d2 + vec3(s*0.22);
+  c = mix(c, uColor*1.25, clamp(uEm,0.0,1.0));
+  if(!gl_FrontFacing && (uClipOn.x+uClipOn.y+uClipOn.z)>0.5) c = mix(c, vec3(0.0,0.75,0.9), 0.38);
+  gl_FragColor = vec4(c, uAlpha);
+}`;
+
+class Renderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.gl = canvas.getContext('webgl', {antialias: true, alpha: true});
+    if (this.gl) this.init();
+  }
+  init() {
+    const gl = this.gl, prog = gl.createProgram();
+    [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, FS]].forEach(([type, src]) => {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS) && !gl.isContextLost()) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(prog, s);
+    });
+    gl.linkProgram(prog); gl.useProgram(prog);
+    this.loc = {pos: gl.getAttribLocation(prog,'aPos'), nor: gl.getAttribLocation(prog,'aNor')};
+    ['uVP','uM','uN','uColor','uEye','uClip','uClipOn','uAlpha','uEm','uXray','uFlat'].forEach(u => this.loc[u] = gl.getUniformLocation(prog, u));
+    gl.enableVertexAttribArray(this.loc.pos); gl.enableVertexAttribArray(this.loc.nor);
+    this.shared = {box: this.mesh(Geo.box()), cyl: this.mesh(Geo.cylinder()), sph: this.mesh(Geo.sphere())};
+  }
+  mesh(g) {
+    const gl = this.gl;
+    const buf = (target, data) => { const b = gl.createBuffer(); gl.bindBuffer(target, b); gl.bufferData(target, data, gl.STATIC_DRAW); return b; };
+    const lines = [];
+    for (let i = 0; i < g.idx.length; i += 3) { const [a,b,c] = g.idx.slice(i,i+3); lines.push(a,b, b,c, c,a); }
+    return {
+      pos: buf(gl.ARRAY_BUFFER, new Float32Array(g.p)), nor: buf(gl.ARRAY_BUFFER, new Float32Array(g.n)),
+      tri: buf(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(g.idx)), nTri: g.idx.length,
+      line: buf(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(lines)), nLine: lines.length
+    };
+  }
+  free(mesh) { ['pos','nor','tri','line'].forEach(k => this.gl.deleteBuffer(mesh[k])); }
+  draw(mesh, model, color, o = {}) {
+    const gl = this.gl, L = this.loc;
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos); gl.vertexAttribPointer(L.pos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.nor); gl.vertexAttribPointer(L.nor, 3, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(L.uM, false, model); gl.uniformMatrix3fv(L.uN, false, M.normal(model));
+    gl.uniform3fv(L.uColor, color);
+    gl.uniform1f(L.uAlpha, o.alpha === undefined ? 1 : o.alpha);
+    gl.uniform1f(L.uEm, o.em || 0); gl.uniform1f(L.uXray, o.xray ? 1 : 0); gl.uniform1f(L.uFlat, o.flat || o.wire ? 1 : 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.wire ? mesh.line : mesh.tri);
+    gl.drawElements(o.wire ? gl.LINES : gl.TRIANGLES, o.wire ? mesh.nLine : mesh.nTri, gl.UNSIGNED_SHORT, 0);
+  }
+}
+/* ========== 4. MODEL 3D PROSEDURAL ========== */
+const hex = h => [(h>>16&255)/255, (h>>8&255)/255, (h&255)/255];
+const C = {metal:hex(0x5b6e84), dark:hex(0x1b2533), black:hex(0x090d13), pcb:hex(0x0f7a4a), gold:hex(0xf2b93b),
+  chip:hex(0x20242c), silver:hex(0xb9c6d3), cyan:hex(0x00d9f5), green:hex(0x35e27d), orange:hex(0xff8a1f),
+  blue:hex(0x2d7dff), red:hex(0xe9465a), white:hex(0xe9eef3), brown:hex(0x8a5530), screen:hex(0x0f3558), yellow:hex(0xffd84a)};
+
+class Builder {
+  constructor() { this.parts = []; this.flows = []; }
+  add(shape, p, s, color, o = {}) { const part = Object.assign({shape, p, s, r:[0,0,0], color}, o); this.parts.push(part); return part; }
+  box(x,y,z, w,h,d, color, o) { return this.add('box', [x,y,z], [w,h,d], color, o); }
+  cyl(x,y,z, rad,len, color, axis = 'y', o = {}) {
+    const r = axis === 'x' ? [0,0,Math.PI/2] : axis === 'z' ? [Math.PI/2,0,0] : [0,0,0];
+    return this.add('cyl', [x,y,z], [rad,len,rad], color, Object.assign({r}, o));
+  }
+  sph(x,y,z, rad, color, o) { return this.add('sph', [x,y,z], [rad,rad,rad], color, o); }
+  tube(pts, rad, color, o, filter) { return this.add(null, [0,0,0], [1,1,1], color, Object.assign({geo: Geo.tube(pts, rad, 8, filter)}, o)); }
+  flow(path, color, speed = .35, count = 3) { this.flows.push({path, color, speed, count}); }
+  /* casing logam: dibuat tembus pandang saat X-Ray */
+  chassis(w, h, d) {
+    const t = .06, o = {shell:true};
+    this.box(0,-h/2,0, w,t,d, C.metal, o); this.box(0,h/2,0, w,t,d, C.metal, o);
+    this.box(-w/2,0,0, t,h,d, C.metal, o); this.box(w/2,0,0, t,h,d, C.metal, o);
+    this.box(0,0,-d/2, w,h,t, C.dark, o); this.box(0,0,d/2, w,h,t, C.dark, o);
+    [-1,1].forEach(s => { this.box(s*(w/2+.14),0,d/2-.06, .22,h,.08, C.silver); for (let i = 0; i < 6; i++) this.box(s*(w/2+.035),0,-d/4+i*.2, .02,h*.55,.08, C.black, o); });
+  }
+  rj45(x, y, z, i, mark) {
+    this.box(x,y,z, .27,.23,.1, mark || C.silver);
+    this.box(x,y-.005,z+.045, .21,.17,.04, C.black);
+    for (let k = 0; k < 4; k++) this.box(x-.06+k*.04, y+.05, z+.068, .016,.05,.012, C.gold);
+    this.box(x, y+(mark ? .16 : .16), z-.005, .08,.04,.04, C.green, {led: i*1.7});
+  }
+  chipset(x, y, z, w, d, o = {}) {
+    this.box(x,y,z, w,.14,d, o.color || C.chip);
+    for (let i = 0; i < 6; i++) { const u = -w/2 + w*(i+.5)/6; this.box(x+u,y-.05,z, .035,.03,d+.14, C.silver); }
+    this.box(x-w*.3,y+.08,z-d*.3, .07,.02,.07, C.white);
+  }
+  heatsink(x, y, z, w, d) { this.box(x,y,z, w,.07,d, C.silver); for (let i = 0; i < 7; i++) this.box(x-w/2+.04+i*(w-.08)/6, y+.14, z, .05,.24,d, C.silver); }
+  fan(x, y, z, r) {
+    this.box(x,y,z-.1, r*2.2,r*2.2,.06, C.black);
+    for (let i = 0; i < 6; i++) this.add('box', [x,y,z], [r*.34,r*1.75,.04], C.cyan, {r:[0,0,i*Math.PI/6], spin: 7});
+    this.cyl(x,y,z+.03, r*.28,.14, C.dark, 'z');
+  }
+  psu(x, y, z, w, h, d) {
+    this.box(x,y,z, w,h,d, hex(0x39424f));
+    for (let i = 0; i < 3; i++) this.cyl(x-w*.28+i*w*.28, y+h/2+.12, z+d*.15, .12,.26, C.blue);
+    this.box(x-w*.12, y+h/2+.1, z-d*.24, w*.4,.2,d*.28, C.yellow);
+    this.box(x, y, z-d/2-.08, .34,.22,.12, C.black);
+  }
+}
+
+/* Setiap fungsi mengembalikan posisi 5 pin */
+const MODELS = {
+  access(b) {
+    b.chassis(6, 1, 3);
+    for (let i = 0; i < 24; i++) b.rj45(-2.62 + Math.floor(i/2)*.34, i%2 ? -.23 : .15, 1.55, i);
+    [0,1].forEach(i => { b.box(1.8+i*.45,-.08,1.55, .38,.26,.1, C.silver); b.box(1.8+i*.45,-.08,1.59, .3,.18,.05, C.black); b.box(1.8+i*.45,.2,1.55, .08,.04,.04, C.cyan, {led:i+3}); });
+    b.box(2.7,-.08,1.55, .26,.22,.08, C.blue);
+    for (let i = 0; i < 3; i++) b.sph(2.55+i*.16,.28,1.55, .045, [C.green,C.orange,C.cyan][i], {led:i*2.3});
+    b.box(0,-.4,0, 5.7,.06,2.7, C.pcb);
+    b.chipset(-.3,-.29,0, .95,.95); b.heatsink(-.3,-.16,0, .85,.85);
+    for (let i = 0; i < 6; i++) { b.chipset(-2.45+i*.62,-.31,.8, .4,.32); b.flow([[-.3,-.3,0],[-2.45+i*.62,-.3,.8],[-2.45+i*.62,-.2,1.45]], C.cyan, .5, 1); }
+    b.chipset(.85,-.31,-.35, .55,.42);
+    b.psu(2.05,-.14,-.65, 1.3,.45,1.25); b.fan(-2.1,0,-1.25,.35);
+    return [[-1.9,.2,1.65], [2.7,.32,1.65], [2.02,-.08,1.68], [-.3,.15,0], [2.05,.35,-.65]];
+  },
+  poe(b) {
+    b.chassis(6, 1.1, 3.2);
+    for (let i = 0; i < 16; i++) b.rj45(-2.55 + Math.floor(i/2)*.4, i%2 ? -.26 : .14, 1.65, i, C.orange);
+    b.box(1.15,-.05,1.65, .9,.42,.06, C.screen, {em:.6});
+    for (let i = 0; i < 5; i++) b.box(.86+i*.145,-.16+i*.035,1.69, .09,.08+i*.07,.02, C.green, {led:i, em:1});
+    [0,1].forEach(i => b.box(2.0+i*.45,-.08,1.65, .36,.26,.08, C.black));
+    b.box(0,-.45,.25, 5.7,.06,2.5, C.pcb);
+    b.chipset(-.2,-.34,0, .8,.8); b.heatsink(-.2,-.2,0, .7,.7);
+    for (let i = 0; i < 4; i++) b.chipset(-2.3+i*.62,-.35,.85, .42,.36, {color: hex(0x4a2a14)});
+    b.psu(1.85,-.13,-.55, 1.9,.55,1.5);
+    b.fan(-2.15,0,-1.35,.4); b.fan(-1.05,0,-1.35,.4);
+    /* perangkat PD: kamera IP */
+    b.box(4.5,-.5,.5, .9,.1,.9, C.dark); b.cyl(4.5,-.15,.5, .08,.65, C.silver);
+    b.box(4.5,.28,.5, .75,.5,1.05, C.white); b.cyl(4.5,.28,1.12, .2,.22, C.black, 'z'); b.cyl(4.5,.28,1.25, .1,.05, C.blue, 'z', {em:.7});
+    b.sph(4.75,.44,1.05, .05, C.red, {led:4});
+    const cable = V.smooth([[-.15,.14,1.72],[0,.1,2.5],[1.8,-.6,2.8],[4.2,-.6,1.8],[4.5,-.1,-.05],[4.5,.2,-.05]], 12);
+    b.tube(cable, .06, C.orange); b.flow(cable, C.yellow, .28, 5);
+    b.flow([[1.85,-.2,-.55],[-.2,-.35,.5],[-1.7,-.35,.85],[-.15,0,1.5]], C.orange, .45, 4);
+    return [[-1.75,.2,1.75], [1.85,.4,-.55], [-1.05,-.2,.85], [-1.05,.15,-1.25], [4.5,.65,.5]];
+  },
+  layer3(b) {
+    b.chassis(6, 1.5, 3.6);
+    for (let i = 0; i < 16; i++) b.rj45(-2.62 + Math.floor(i/2)*.34, i%2 ? -.38 : .02, 1.85, i);
+    for (let i = 0; i < 4; i++) { const x = .45+i*.45; b.box(x,-.2,1.85, .38,.28,.1, C.silver); b.box(x,-.2,1.89, .3,.2,.05, C.black); b.box(x,.08,1.85, .08,.04,.04, C.cyan, {led:i*2}); }
+    b.box(2.5,.2,1.85, .7,.42,.06, C.screen, {em:.65}); for (let i = 0; i < 3; i++) b.box(2.43,.31-i*.11,1.89, .42-i*.07,.03,.02, C.cyan, {em:1});
+    b.box(0,-.62,.15, 5.7,.06,3.1, C.pcb);
+    b.chipset(-1.7,-.51,-.1, .85,.85); b.heatsink(-1.7,-.37,-.1, .75,.75);
+    b.chipset(-.45,-.5,-.35, .65,.65, {color: hex(0x123f6b)}); b.box(-.45,-.41,-.35, .35,.03,.35, C.cyan, {led:2});
+    b.chipset(.25,-.5,.65, .95,.95); b.heatsink(.25,-.36,.65, .85,.85);
+    for (let i = 0; i < 3; i++) b.box(-2.55+i*.22,-.4,.9, .08,.36,.8, C.green);
+    [.55,1.95].forEach((x,i) => { b.psu(x+.15,-.3,-1.0, 1.15,.52,1.3); b.box(x+.15,.0,-1.88, .6,.08,.1, i ? C.green : C.red); });
+    b.fan(-2.25,0,-1.55,.45); b.fan(-1.05,0,-1.55,.45);
+    b.flow([[-1.7,-.2,-.1],[-.45,-.3,-.35],[.25,-.2,.65]], C.yellow, .4, 4);
+    b.flow([[.45,-.2,1.75],[.25,-.45,.65],[-1.7,-.45,.9],[-1.9,-.3,1.7]], C.cyan, .4, 5);
+    return [[1.1,-.15,1.98], [-1.7,.0,-.1], [-.45,-.3,-.35], [.25,.0,.65], [2.1,.2,-1.0]];
+  },
+  board(b) {
+    b.box(0,-.3,0, 6.2,.14,4.2, C.pcb);
+    [[-2.9,-1.9],[2.9,-1.9],[-2.9,1.9],[2.9,1.9]].forEach(([x,z]) => { b.cyl(x,-.22,z, .16,.03, C.gold); b.cyl(x,-.2,z, .08,.03, C.black); });
+    b.chipset(0,-.16,-.2, 1.3,1.3); b.heatsink(0,0,-.2, .9,.9);
+    [-1.9,-1.9].forEach((x,i) => b.chipset(x,-.17,-.95+i*.9, .85,.55));
+    b.chipset(1.9,-.17,-.8, .65,.75, {color: hex(0x2b3d55)});
+    for (let i = 0; i < 4; i++) {
+      const x = -2.1+i*1.4;
+      b.box(x,.05,1.75, .95,.55,.65, C.silver, {shell:true}); b.box(x,.05,2.09, .65,.36,.05, C.black);
+      for (let k = 0; k < 8; k++) b.box(x-.245+k*.07,.12,1.78, .025,.025,.5, C.gold);
+      b.box(x,-.12,1.08, .75,.22,.38, C.black); b.box(x,.0,1.08, .5,.02,.18, C.yellow);
+      b.chipset(x,-.17,.55, .48,.38);
+      const route = [[0,-.2,-.2],[x*.55,-.2,.2],[x,-.2,.55],[x,-.2,1.08],[x,-.2,1.6]];
+      for (let k = -1; k <= 1; k += 2) b.tube(route.map(q => [q[0]+k*.08,-.222,q[2]]), .016, C.gold);
+      b.flow(route.map(q => [q[0]+.08,-.17,q[2]]), C.cyan, .4, 2);
+    }
+    [[-1.9,-.95],[-1.9,-.05],[1.9,-.8]].forEach(([x,z]) => { b.tube([[0,-.222,-.2],[x*.5,-.222,z],[x,-.222,z]], .025, C.gold); b.flow([[0,-.18,-.2],[x*.5,-.18,z],[x,-.18,z]], C.yellow, .55, 2); });
+    for (let i = 0; i < 8; i++) { b.cyl(-1.2+i*.34,-.05,-1.65, .11,.36, C.blue); b.cyl(-1.2+i*.34,.14,-1.65, .11,.02, C.silver); }
+    b.box(1.05,-.15,-.95, .42,.16,.22, C.silver);
+    b.box(2.35,-.05,-1.65, .9,.38,.5, C.white); for (let i = 0; i < 4; i++) b.box(2.05+i*.2,.2,-1.65, .05,.15,.05, C.gold);
+    for (let i = 0; i < 20; i++) b.box(2.35+(i%4)*.16,-.2,-.15+Math.floor(i/4)*.14, .09,.05,.05, i%3 ? C.brown : C.chip);
+    for (let i = 0; i < 4; i++) b.sph(-2.75,-.18,.2+i*.25, .06, C.green, {led:i*1.9});
+    return [[0,.35,-.2], [-1.9,0,-.95], [1.9,0,-.8], [-.7,0,.55], [2.1,.15,1.08]];
+  },
+  sfp(b) {
+    const o = {shell:true};
+    b.box(.1,-.52,0, 4.8,.07,1.6, C.silver, o); b.box(.1,.52,0, 4.8,.07,1.6, C.silver, o);
+    b.box(.1,0,-.8, 4.8,1.04,.07, C.metal, o); b.box(.1,0,.8, 4.8,1.04,.07, C.metal, o);
+    b.box(-.4,.565,0, 2.2,.02,1.1, C.white, o); b.box(-.4,.58,-.2, 1.7,.01,.12, C.blue, o); b.box(-.7,.58,.2, 1.1,.01,.08, C.chip, o);
+    [-.38,.38].forEach(z => {
+      b.box(2.75,0,z, .55,.72,.66, C.blue, {shell:true}); b.box(3.04,0,z, .05,.44,.4, C.black);
+      b.cyl(2.78,0,z, .07,.66, C.white, 'x');
+    });
+    b.tube(V.smooth([[2.55,.62,-.84],[3.2,.7,-.84],[3.25,.7,0],[3.2,.7,.84],[2.55,.62,.84]],8), .07, C.blue);
+    b.box(-.75,-.2,0, 3.3,.07,1.35, C.pcb);
+    b.cyl(1.45,0,-.38, .23,.95, C.gold, 'x'); b.cyl(2.2,0,-.38, .13,.6, C.silver, 'x'); b.sph(.92,0,-.38, .15, C.red, {led:1});
+    b.cyl(1.45,0,.38, .23,.95, C.silver, 'x'); b.cyl(2.2,0,.38, .13,.6, C.silver, 'x'); b.sph(.92,0,.38, .15, C.cyan, {led:4});
+    b.chipset(-.45,-.09,-.2, .8,.6); b.chipset(-1.35,-.1,.3, .45,.4);
+    for (let i = 0; i < 10; i++) { b.box(-2.65,-.2,-.58+i*.13, .6,.09,.075, C.gold); }
+    b.box(-2.3,-.2,0, .25,.07,1.35, C.pcb);
+    [-1,1].forEach(s => b.tube([[.9,0,s*.38],[.35,-.05,s*.3],[-.1,-.12,s*.22]], .03, C.gold));
+    const tx = [[-2.9,-.1,-.2],[-.45,.05,-.2],[1.4,.0,-.38],[4.6,0,-.38]], rx = [[4.6,0,.38],[1.4,0,.38],[-.45,.05,.2],[-2.9,-.1,.2]];
+    [-.38,.38].forEach((z,i) => b.tube(V.smooth([[3.05,0,z],[3.8,0,z],[4.6,-.15,z*1.7]],10), .075, i ? C.cyan : C.orange, {alpha:.55}));
+    b.flow(tx, C.red, .35, 5); b.flow(rx, C.cyan, .35, 5);
+    return [[3.1,.35,.38], [1.45,.3,-.38], [1.45,.25,.45], [-.45,.1,-.2], [-2.75,-.1,.4]];
+  },
+  rj(b) {
+    const cols = [[C.white,C.orange],[C.orange],[C.white,C.green],[C.blue],[C.white,C.blue],[C.green],[C.white,C.brown],[C.brown]];
+    const clear = {alpha:.2, shell:true};
+    b.box(1.6,.0,0, 2.1,.78,1.5, hex(0xbfe9ff), clear);
+    for (let i = 0; i <= 8; i++) b.box(2.3,.37,-.64+i*.16, .7,.1,.025, hex(0xd8f4ff), {alpha:.5, shell:true});
+    cols.forEach((c, i) => {
+      const z = -.56+i*.16, zz = (i-3.5)*.065;
+      b.box(2.3,.34,z, .5,.14,.07, C.gold); b.box(2.52,.43,z, .08,.07,.07, C.gold);
+      const w = V.smooth([[-.5,Math.sin(i*2.4)*.13,zz],[.2,Math.sin(i*2.4)*.08,zz*1.4],[1.05,.14,z],[1.8,.18,z],[2.6,.18,z]], 12);
+      if (c[1]) { b.tube(w, .058, c[0], {}, k => k%5 < 3); b.tube(w, .058, c[1], {}, k => k%5 >= 3); }
+      else b.tube(w, .058, c[0]);
+      if (i < 3 || i === 5) b.flow(w, i < 2 ? C.yellow : C.cyan, .4, 2);
+    });
+    b.box(1.55,-.46,0, 1.3,.07,.55, hex(0xbfe9ff), {alpha:.55, r:[0,0,.17]}); b.box(.93,-.58,0, .22,.1,.62, hex(0xbfe9ff), {alpha:.65});
+    b.box(.75,-.22,0, .24,.26,1.4, hex(0x9fd9f5), {alpha:.55, shell:true});
+    b.cyl(-.2,0,0, .5,1.5, C.blue, 'x', {alpha:.42, shell:true});
+    b.cyl(-1.55,0,0, .46,1.3, C.blue, 'x', {shell:true});
+    for (let i = 0; i < 4; i++) b.cyl(-1.0-i*.1,0,0, .52-i*.015,.045, hex(0x1d5bc2), 'x', {shell:true});
+    [C.orange,C.green,C.blue,C.brown].forEach((col, i) => {
+      const cy = i < 2 ? .22 : -.22, cz = i%2 ? .22 : -.22, twist = 8 + i*1.3;
+      [0,1].forEach(k => {
+        const path = [];
+        for (let s = 0; s <= 70; s++) {
+          const t = s/70, x = -.9 - t*3.4, sp = 1 + Math.max(0, t-.42)*2.4, a = t*twist*Math.PI + k*Math.PI;
+          path.push([x, cy*sp + Math.cos(a)*.085, cz*sp + Math.sin(a)*.085]);
+        }
+        b.tube(path, .062, k ? C.white : col);
+      });
+    });
+    return [[2.5,.52,-.56], [.95,-.7,0], [1.4,.35,.4], [-1.55,.5,0], [-3.8,.5,.4]];
+  },
+  star(b) {
+    b.box(0,-.55,0, 1.9,.45,1.2, C.metal, {shell:true}); b.box(0,-.62,0, 1.65,.05,1, C.pcb); b.chipset(0,-.53,0, .55,.55);
+    HOSTS.forEach((h, i) => {
+      const [x,z] = h.at, sx = Math.sign(x), sz = Math.sign(z);
+      b.box(sx*.55,-.55,sz*.62, .3,.2,.06, C.black); b.sph(sx*.82,-.42,sz*.62, .05, C.green, {led:i*1.6});
+      b.box(x,-.84,z, .75,.07,.45, C.silver); b.box(x,-.55,z, .12,.55,.1, C.silver);
+      b.box(x,.12,z, 1.45,.95,.1, C.dark, {shell:true});
+      b.box(x,.12,z+.062, 1.3,.8,.02, C.screen, {em:.55, screen:i});
+      b.box(x-.28,.28,z+.078, .55,.05,.01, h.color, {em:1}); b.box(x-.12,.13,z+.078, .85,.04,.01, C.cyan, {em:.8}); b.box(x-.28,-.02,z+.078, .5,.04,.01, C.cyan, {em:.8});
+      b.box(x,-.84,z+.7, 1.15,.08,.4, C.dark); for (let k = 0; k < 18; k++) b.box(x-.45+(k%6)*.18,-.785,z+.58+Math.floor(k/6)*.12, .12,.03,.08, C.metal);
+      b.box(x+sx*1.05,-.4,z, .38,.95,.8, C.metal, {shell:true}); b.box(x+sx*1.05,-.45,z, .28,.55,.55, C.pcb); b.sph(x+sx*1.05,-.08,z+.42, .045, h.color, {em:1});
+      h.path = V.smooth([[x,-.82,z-.28],[x*.72,-.84,z-sz*.1-.35],[x*.4,-.82,sz*1.15],[sx*.55,-.6,sz*.66]], 14);
+      b.tube(h.path, .055, h.color);
+    });
+    return [[0,-.22,0], ...HOSTS.map(h => [h.at[0], .78, h.at[1]])];
+  }
+};
+const HOSTS = [
+  {name:'PC A', at:[-3.1,-2.1], mac:'AA:BB:CC:00:00:01', color:C.orange},
+  {name:'PC B', at:[ 3.1,-2.1], mac:'AA:BB:CC:00:00:02', color:C.green},
+  {name:'PC C', at:[-3.1, 2.1], mac:'AA:BB:CC:00:00:03', color:C.blue},
+  {name:'PC D', at:[ 3.1, 2.1], mac:'AA:BB:CC:00:00:04', color:C.yellow}
+];
+/* ========== 5. DATA MATERI ==========
+   pins   : [nama, penjelasan, petunjuk kuis]
+   faults : [gangguan, penyebab, dampak, indeks pin]
+   view   : t = titik pandang, fit = jari-jari tampilan, floor = tinggi hologram */
+const ITEMS = [
+{ id:'access', name:'Switch Access 24 Port', cat:'Perangkat',
+  view:{t:[0,-.15,0], fit:3.7, floor:-1.15, yaw:.5, pitch:.45},
+  desc:'Switch lapisan akses (Layer 2) yang menghubungkan komputer, printer, dan perangkat pengguna ke jaringan lokal. Frame diteruskan berdasarkan alamat MAC tujuan. Aktifkan X-Ray atau Irisan Y untuk melihat bagian dalamnya.',
+  params:[['Port akses','24 × 10/100/1000 Mbps'],['Kapasitas switching','52 Gbps (24×1G + 2×1G, dupleks penuh)'],['Forwarding rate','38,7 Mpps (frame 64 byte)'],['Tabel MAC','± 8.000 entri']],
+  pins:[
+    ['Port RJ45','24 port tembaga Gigabit Ethernet untuk host, panjang kabel UTP maksimal 100 m.','Tempat kabel UTP dari komputer pengguna dicolokkan.'],
+    ['LED Indikator','Menunjukkan status daya, sistem, link, dan aktivitas data.','Bagian yang memberi tahu status daya dan sistem secara visual.'],
+    ['Uplink SFP','Slot modul optik atau tembaga untuk sambungan ke switch distribusi.','Slot modular untuk sambungan serat optik menuju switch di atasnya.'],
+    ['ASIC Switching','Chip khusus yang meneruskan frame secara perangkat keras dengan kecepatan tinggi.','Otak perangkat keras yang meneruskan frame berdasarkan tabel MAC.'],
+    ['Catu Daya','Mengubah listrik AC menjadi tegangan DC untuk seluruh rangkaian.','Komponen yang mengubah listrik AC menjadi DC.']],
+  faults:[
+    ['Port tidak menyala (link down)','Kabel rusak, konektor longgar, port dimatikan (shutdown), atau port terbakar akibat lonjakan listrik.','Perangkat pada port tersebut tidak dapat mengakses jaringan.',0],
+    ['Broadcast storm','Terjadi loop kabel sementara Spanning Tree Protocol (STP) nonaktif.','LED berkedip serentak, CPU dan bandwidth penuh, seluruh LAN melambat atau lumpuh.',1],
+    ['Uplink putus','Modul SFP rusak atau tidak cocok, serat optik kotor, tertekuk, atau terbalik Tx/Rx.','Semua pengguna di switch ini terisolasi dari server dan internet.',2],
+    ['Switch mati total','Catu daya rusak, kabel listrik lepas, atau tegangan tidak stabil.','Seluruh host yang terhubung kehilangan koneksi.',4]]},
+{ id:'poe', name:'Switch PoE', cat:'Perangkat',
+  view:{t:[.8,-.15,.4], fit:4.6, floor:-1.2, yaw:.35, pitch:.52},
+  desc:'Switch Power over Ethernet mengirim data sekaligus daya listrik lewat satu kabel UTP ke perangkat seperti kamera IP, access point, dan telepon IP. Model ini menampilkan 16 port PoE dan sebuah kamera IP.',
+  params:[['Standar','IEEE 802.3af / 802.3at'],['Daya per port (PSE)','15,4 W (af) · 30 W (at)'],['Anggaran daya','250 W (contoh)'],['Tegangan keluaran','44–57 V DC']],
+  pins:[
+    ['Port PoE','Port RJ45 yang membawa data dan daya. Pada model ini diberi warna oranye.','Lubang kabel yang menyalurkan data sekaligus listrik.'],
+    ['PSU Daya Besar','Catu daya berkapasitas tinggi yang menyediakan anggaran daya PoE.','Sumber anggaran daya listrik bagi semua port.'],
+    ['Kontroler PSE','Chip Power Sourcing Equipment: mendeteksi, mengklasifikasi, dan membatasi daya tiap port.','Chip yang mendeteksi perangkat dahulu sebelum memberi tegangan.'],
+    ['Kipas Pendingin','Membuang panas tambahan akibat penyaluran daya.','Bagian yang membuang panas dari dalam casing.'],
+    ['Perangkat PD (Kamera IP)','Powered Device: perangkat penerima daya dari switch melalui kabel UTP.','Penerima daya yang tidak memerlukan adaptor listrik sendiri.']],
+  faults:[
+    ['Anggaran daya terlampaui','Total kebutuhan perangkat melebihi kapasitas daya PoE switch.','Port berprioritas rendah tidak diberi daya; kamera atau access point mati.',1],
+    ['Perangkat restart berulang','Kabel jelek atau terlalu panjang sehingga tegangan turun, atau kelas daya tidak cocok.','Perangkat PD tidak stabil dan koneksinya putus-sambung.',4],
+    ['Overheat','Kipas macet, ventilasi tertutup, atau debu menumpuk.','Switch membatasi daya, mati mendadak, dan umur komponen berkurang.',3],
+    ['Port tidak mengeluarkan daya','PoE dinonaktifkan, kontroler PSE rusak, atau perangkat tidak mendukung standar 802.3.','Data mungkin tersambung tetapi perangkat tanpa adaptor tidak menyala.',2]]},
+{ id:'layer3', name:'Switch Layer 3', cat:'Perangkat',
+  view:{t:[0,-.2,0], fit:3.9, floor:-1.45, yaw:.55, pitch:.58},
+  desc:'Switch multilayer yang melakukan switching Layer 2 sekaligus routing antar-VLAN berdasarkan alamat IP secara perangkat keras. Umumnya dipakai di lapisan distribusi atau inti jaringan.',
+  params:[['Port','24 × 1G + 4 × 10G SFP+ (contoh)'],['Kapasitas switching','128 Gbps'],['Forwarding rate','95,2 Mpps (frame 64 byte)'],['Protokol routing','Statik, RIP, OSPF']],
+  pins:[
+    ['Port Uplink SFP+','Slot 10 Gbps untuk sambungan ke core, server, atau antar-gedung.','Slot berkecepatan 10 Gbps untuk jalur tulang punggung.'],
+    ['CPU Routing','Menjalankan sistem operasi, protokol routing, dan membangun tabel rute.','Prosesor yang menjalankan OSPF dan menyusun tabel rute.'],
+    ['TCAM','Memori pencarian sangat cepat untuk tabel rute, ACL, dan QoS.','Memori khusus yang mencocokkan ACL dan rute dalam sekali pencarian.'],
+    ['ASIC Forwarding','Meneruskan paket antar-port dan antar-VLAN pada kecepatan kabel.','Chip yang meneruskan paket antar-VLAN secara perangkat keras.'],
+    ['PSU Redundan','Dua catu daya; satu mengambil alih saat yang lain gagal.','Cadangan listrik agar perangkat tetap hidup saat satu sumber gagal.']],
+  faults:[
+    ['Antar-VLAN tidak terhubung','IP routing belum aktif, SVI down, atau gateway host salah.','Host di VLAN berbeda tidak dapat saling berkomunikasi.',3],
+    ['CPU 100%','Broadcast storm, serangan ke control plane, atau routing yang terus berubah (flapping).','Manajemen lambat, tetangga routing putus, dan paket hilang.',1],
+    ['TCAM penuh','Jumlah rute atau aturan ACL melebihi kapasitas.','Trafik diproses perangkat lunak sehingga lambat, atau aturan baru gagal diterapkan.',2],
+    ['Redundansi daya hilang','Salah satu PSU rusak atau sumber listriknya terputus.','Switch masih berjalan, tetapi akan mati total jika PSU kedua juga gagal.',4]]},
+{ id:'board', name:'Papan Sirkuit Switch', cat:'Komponen',
+  view:{t:[0,-.2,0], fit:3.6, floor:-1.0, yaw:.35, pitch:.85},
+  desc:'Papan sirkuit cetak (PCB) tempat seluruh komponen switch dipasang. Jalur tembaga menghubungkan port, PHY, ASIC, dan memori. Gambar ini merupakan penyederhanaan untuk pembelajaran.',
+  params:[['Konstruksi PCB','Multilapis, 4–10 lapis'],['Buffer paket','± 512 KB – 12 MB (kelas akses)'],['Rel tegangan','12 V → 3,3 / 1,8 / 1,0 V'],['Isolasi port','1.500 Vrms']],
+  pins:[
+    ['ASIC Switch','Pusat pemrosesan frame: pencarian MAC, VLAN, dan penjadwalan antrean.','Chip terbesar yang memutuskan ke port mana frame dikirim.'],
+    ['Memori Buffer (RAM)','Menampung frame sementara saat port tujuan sibuk; juga memori kerja sistem.','Tempat frame mengantre sementara ketika port tujuan sibuk.'],
+    ['Flash Firmware','Menyimpan sistem operasi dan konfigurasi; isinya tetap ada saat daya mati.','Penyimpanan sistem operasi yang tidak hilang saat listrik padam.'],
+    ['PHY Transceiver','Mengubah data digital menjadi sinyal listrik pada kabel dan sebaliknya.','Chip lapisan fisik yang mengubah bit menjadi sinyal kabel.'],
+    ['Transformator Isolasi','Magnetik yang mengisolasi secara listrik dan meredam derau antara port dan rangkaian.','Pelindung berbasis lilitan yang memisahkan port dari rangkaian secara listrik.']],
+  faults:[
+    ['Gagal booting','Firmware rusak, pembaruan terputus, atau chip flash bermasalah.','Switch berhenti di mode pemulihan atau restart terus-menerus.',2],
+    ['Paket sering terbuang','Buffer penuh akibat kemacetan, atau sel memori rusak.','Transfer lambat, retransmisi meningkat, sistem bisa hang.',1],
+    ['Port mati setelah petir','Lonjakan tegangan merusak transformator isolasi atau PHY.','Satu atau sekelompok port tidak dapat membentuk link.',4],
+    ['ASIC terlalu panas','Heatsink lepas, pasta termal kering, atau aliran udara buruk.','Forwarding kacau, error CRC, atau seluruh switch mati.',0]]},
+{ id:'sfp', name:'Modul SFP', cat:'Komponen',
+  view:{t:[.8,0,0], fit:4.1, floor:-1.25, yaw:.35, pitch:.6},
+  desc:'Small Form-factor Pluggable adalah transceiver yang dapat dipasang-lepas saat perangkat menyala. Modul mengubah sinyal listrik menjadi cahaya dan sebaliknya.',
+  params:[['Laju data','1,25 Gbps (1000BASE-X)'],['Panjang gelombang','850 nm (SX) · 1310 nm (LX)'],['Jarak tipikal','SX ± 550 m (OM2) · LX 5–10 km'],['Konsumsi daya','< 1 W']],
+  pins:[
+    ['Konektor LC Duplex','Dua lubang untuk serat optik pengirim (Tx) dan penerima (Rx).','Tempat dua inti serat optik dipasang.'],
+    ['TOSA (Laser)','Transmitter Optical Sub-Assembly: dioda laser yang memancarkan cahaya.','Rakitan yang mengubah sinyal listrik menjadi cahaya.'],
+    ['ROSA (Fotodioda)','Receiver Optical Sub-Assembly: fotodioda yang menangkap cahaya.','Rakitan yang mengubah cahaya datang menjadi sinyal listrik.'],
+    ['IC Driver & EEPROM','Mengatur arus laser dan menyimpan identitas serta data diagnostik modul.','Chip pengatur laser sekaligus penyimpan identitas modul.'],
+    ['Konektor Tepi (Gold Finger)','Kontak berlapis emas yang masuk ke slot SFP pada switch.','Kontak listrik yang masuk ke dalam slot switch.']],
+  faults:[
+    ['Daya optik terima rendah','Ferrule berdebu, serat tertekuk, atau jarak melebihi spesifikasi.','Error CRC dan link putus-sambung.',0],
+    ['Link tidak terbentuk','Panjang gelombang atau jenis serat tidak cocok, atau Tx/Rx terbalik.','Port tetap down walaupun modul terpasang.',2],
+    ['Modul tidak dikenali','Data EEPROM tidak kompatibel dengan vendor switch atau modul rusak.','Switch menolak modul atau menonaktifkan port.',3],
+    ['Laser melemah','Usia pakai dan suhu tinggi menurunkan kinerja dioda laser.','Sinyal kirim lemah sehingga sisi lawan sering kehilangan data.',1]]},
+{ id:'rj', name:'Konektor RJ45 & UTP', cat:'Komponen',
+  view:{t:[-.85,-.05,0], fit:3.9, floor:-1.4, yaw:-.25, pitch:.55},
+  desc:'Konektor 8P8C (RJ45) dengan kabel Unshielded Twisted Pair. Urutan T568B dari pin 1: putih-oranye, oranye, putih-hijau, biru, putih-biru, hijau, putih-cokelat, cokelat.',
+  params:[['Konektor','8P8C (RJ45)'],['Impedansi','100 Ω ± 15%'],['Panjang maksimal','100 m'],['Kategori','Cat5e 1 Gbps · Cat6 10 Gbps (≤ 55 m)']],
+  pins:[
+    ['Pin Kontak Emas','Delapan bilah logam yang menembus isolasi kawat saat di-crimp.','Bilah logam yang menembus isolasi kawat saat di-crimping.'],
+    ['Klip Pengunci','Tuas plastik yang menahan konektor agar tidak lepas dari port.','Tuas kecil yang menahan konektor di dalam port.'],
+    ['Urutan Warna T568B','Susunan standar delapan kawat di dalam konektor.','Susunan kawat yang harus mengikuti standar pengkabelan.'],
+    ['Jaket Kabel','Selubung luar pelindung yang harus ikut terjepit di dalam konektor.','Selubung luar yang melindungi semua kawat.'],
+    ['Pasangan Terpilin','Empat pasang kawat yang dipilin untuk mengurangi crosstalk dan interferensi.','Bentuk kawat yang meredam crosstalk dan interferensi.']],
+  faults:[
+    ['Urutan kawat salah / split pair','Susunan warna tidak sesuai standar saat crimping.','Kabel gagal tersambung, atau crosstalk tinggi sehingga kecepatan turun.',2],
+    ['Crimp tidak sempurna','Pin emas tidak menembus kawat atau kawat tidak sampai ujung konektor.','Koneksi putus-sambung atau hanya terhubung 100 Mbps.',0],
+    ['Konektor mudah lepas','Klip pengunci patah.','Link putus ketika kabel tersenggol.',1],
+    ['Interferensi dan crosstalk','Pilinan dibuka terlalu panjang (lebih dari ± 13 mm) atau kabel dekat sumber listrik.','Error frame meningkat dan throughput menurun.',4]]},
+{ id:'star', name:'Simulasi Topologi Star', cat:'Konsep',
+  view:{t:[0,-.35,.2], fit:4.9, floor:-.98, yaw:0, pitch:.82},
+  desc:'Pada topologi star setiap host terhubung ke satu switch pusat. Pilih pengirim dan tujuan pada panel simulasi, lalu amati switch mempelajari alamat MAC sumber (learning), membanjiri port (flooding), atau meneruskan ke satu port (forwarding).',
+  params:[['Node','1 switch + 4 PC'],['Media','UTP, satu kabel per host'],['Domain','1 broadcast · 4 collision'],['Aging time MAC','300 detik (umum)']],
+  pins:[
+    ['Switch Pusat','Menerima semua frame, mencatat MAC sumber, lalu menentukan port keluar.','Titik pusat yang menyimpan tabel MAC.'],
+    ['PC A (Port 1)','Host dengan MAC AA:BB:CC:00:00:01, kabel oranye.','Host dengan MAC berakhiran :01.'],
+    ['PC B (Port 2)','Host dengan MAC AA:BB:CC:00:00:02, kabel hijau.','Host yang tersambung ke Port 2.'],
+    ['PC C (Port 3)','Host dengan MAC AA:BB:CC:00:00:03, kabel biru.','Host dengan kabel berwarna biru.'],
+    ['PC D (Port 4)','Host dengan MAC AA:BB:CC:00:00:04, kabel kuning.','Host yang tersambung ke port bernomor paling besar.']],
+  faults:[
+    ['Switch pusat gagal','Daya mati atau perangkat rusak (single point of failure).','Seluruh komunikasi antar-PC terhenti.',0],
+    ['Satu kabel putus','Kabel ke salah satu host rusak atau terlepas.','Hanya host itu yang terputus; host lain tetap normal.',1],
+    ['Tabel MAC penuh','Serangan MAC flooding atau terlalu banyak alamat.','Alamat yang tidak tercatat dibanjiri ke semua port sehingga boros dan rawan disadap.',0],
+    ['Konflik alamat MAC','Dua perangkat memakai MAC sama, misalnya akibat kloning.','Entri tabel berpindah-pindah port dan frame salah kirim.',4]]}
+];
+/* ========== 6. STATUS APLIKASI ========== */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
+const canvas = $('#gl'), R = new Renderer(canvas);
+const S = {item:ITEMS[0], tab:'struktur', filter:'Semua', sel:-1,
+  opt:{xray:false, wire:false, pins:true, spin:false, live:true},
+  slice:[false,false,false], pos:[.5,.5,.5], time:0};
+const cam = {yaw:0, pitch:0, zoom:1, pan:[0,0,0]};
+const quiz = {};              // skor tersimpan per model
+const sim = {mac:new Map(), anim:null, dots:[], screens:{}, count:0};
+let model = null, holo = null, pinEls = [];
+
+/* ========== 7. PEMBUATAN MODEL ========== */
+function buildModel() {
+  if (!R.gl) return;
+  if (model) model.parts.forEach(p => p.own && R.free(p.mesh));
+  const b = new Builder(), pins = MODELS[S.item.id](b);
+  const lo = [1e9,1e9,1e9], hi = [-1e9,-1e9,-1e9];
+  const grow = (v, e) => v.forEach((x, k) => { lo[k] = Math.min(lo[k], x-e[k]); hi[k] = Math.max(hi[k], x+e[k]); });
+  b.parts.forEach(p => {
+    if (p.geo) {
+      p.mesh = R.mesh(p.geo); p.own = true;
+      for (let i = 0; i < p.geo.p.length; i += 3) grow(p.geo.p.slice(i, i+3), [0,0,0]);
+    } else {
+      p.mesh = R.shared[p.shape];
+      const k = p.shape === 'box' ? .5 : 1, m = M.trs(p.p, p.r, p.s.map(v => v*k));
+      grow(p.p, [0,1,2].map(r => Math.abs(m[r]) + Math.abs(m[4+r]) * (p.shape === 'cyl' ? .5 : 1) + Math.abs(m[8+r])));
+    }
+    p.m = M.trs(p.p, p.r, p.s);
+  });
+  model = {parts:b.parts, flows:b.flows, pins, lo, hi};
+}
+function buildHolo() {
+  const ring = (r, w) => R.mesh(Geo.tube(Array.from({length:97}, (_, i) => [Math.cos(i/96*Math.PI*2)*r, 0, Math.sin(i/96*Math.PI*2)*r]), w, 5));
+  holo = {outer:ring(1,.006), inner:ring(.76,.004), core:ring(.42,.003), disc:R.mesh(Geo.cylinder(64))};
+}
+
+/* ========== 8. KAMERA & RENDER ========== */
+let view = null;
+function resetCamera() { const v = S.item.view; cam.yaw = v.yaw; cam.pitch = v.pitch; cam.zoom = 1; cam.pan = [0,0,0]; }
+function computeView(w, h) {
+  const v = S.item.view, fov = .7, asp = w/h, tan = Math.tan(fov/2);
+  // jarak otomatis: model tetap utuh pada layar lebar maupun tegak
+  const dist = Math.max(v.fit/(tan*asp), v.fit*.76/tan) * 1.06 * cam.zoom;
+  const t = V.add(v.t, cam.pan), cp = Math.cos(cam.pitch);
+  const eye = V.add(t, V.mul([Math.sin(cam.yaw)*cp, Math.sin(cam.pitch), Math.cos(cam.yaw)*cp], dist));
+  return {eye, t, dist, vp: M.mul(M.persp(fov, asp, .1, 300), M.lookAt(eye, t))};
+}
+function project(p) {
+  const m = view.vp, [x,y,z] = p, cw = m[3]*x + m[7]*y + m[11]*z + m[15];
+  return [((m[0]*x+m[4]*y+m[8]*z+m[12])/cw*.5+.5)*canvas.clientWidth, (.5-(m[1]*x+m[5]*y+m[9]*z+m[13])/cw*.5)*canvas.clientHeight, cw];
+}
+const clipValue = k => model.lo[k] - .02 + (model.hi[k] - model.lo[k] + .04) * S.pos[k];
+
+function render() {
+  const gl = R.gl, L = R.loc, dpr = Math.min(window.devicePixelRatio || 1, canvas.clientWidth > 1500 ? 1.5 : 2);
+  const w = Math.round(canvas.clientWidth*dpr), h = Math.round(canvas.clientHeight*dpr);
+  if (!w || !h) return;
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  view = computeView(w, h);
+  gl.viewport(0,0,w,h); gl.clearColor(0,0,0,0); gl.depthMask(true); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+  gl.uniformMatrix4fv(L.uVP, false, view.vp); gl.uniform3fv(L.uEye, view.eye);
+  gl.uniform3fv(L.uClip, [0,1,2].map(clipValue)); gl.uniform3fv(L.uClipOn, S.slice.map(Number));
+
+  const T = S.time, wire = S.opt.wire, solid = [], glass = [];
+  model.parts.forEach(p => {
+    if (p.spin) p.m = M.trs(p.p, [p.r[0], p.r[1], p.r[2] + T*p.spin], p.s);
+    ((S.opt.xray && p.shell) || (p.alpha < 1) ? glass : solid).push(p);
+  });
+  const paint = p => {
+    let color = p.color, em = p.em || 0;
+    if (p.led !== undefined) { const on = !S.opt.live || Math.sin(T*5 + p.led*3.1) > -.35; color = on ? p.color : V.mul(p.color, .25); em = on ? 1 : 0; }
+    if (p.screen !== undefined && sim.screens[p.screen]) { color = sim.screens[p.screen]; em = 1; }
+    const xray = S.opt.xray && p.shell && !wire;
+    R.draw(p.mesh, p.m, wire && !p.led ? V.add(V.mul(color,.55), [0,.4,.48]) : color, {em, wire, xray, alpha: wire ? 1 : p.alpha});
+  };
+  solid.forEach(paint);
+  gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false); glass.forEach(paint);
+
+  // partikel aliran data (hanya saat Simulasi Hidup aktif)
+  gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
+  const dot = (pos, rad, color, alpha) => R.draw(R.shared.sph, M.trs(pos, [0,0,0], [rad,rad,rad]), color, {flat:true, alpha});
+  if (S.opt.live) model.flows.forEach(f => {
+    for (let i = 0; i < f.count; i++) { const p = V.along(f.path, (T*f.speed + i/f.count) % 1); dot(p, .055, f.color, .95); dot(p, .11, f.color, .22); }
+  });
+  // lingkaran holografik (tidak ikut teriris)
+  gl.uniform3fv(L.uClipOn, [0,0,0]);
+  const v = S.item.view, rr = v.fit*.98, at = [v.t[0], v.floor, v.t[2]];
+  const ring = (mesh, s, color, alpha, ry = 0, y = 0) => R.draw(mesh, M.trs([at[0], at[1]+y, at[2]], [0,ry,0], [s,s,s]), color, {flat:true, alpha});
+  R.draw(holo.disc, M.trs(at, [0,0,0], [rr,.004,rr]), C.cyan, {flat:true, alpha:.045});
+  ring(holo.outer, rr, C.cyan, .8); ring(holo.inner, rr, C.cyan, .45); ring(holo.core, rr, C.blue, .6);
+  const pulse = (T*.25) % 1; ring(holo.outer, rr*(.42 + pulse*.62), C.cyan, .35*(1-pulse));
+  for (let i = 0; i < 36; i++) {
+    const a = i/36*Math.PI*2 + T*.12, r = rr*(i%3 ? .9 : .86);
+    R.draw(R.shared.box, M.trs([at[0]+Math.cos(a)*r, at[1], at[2]+Math.sin(a)*r], [0,-a,0], [rr*(i%3 ? .04 : .09), .008, .025]), C.cyan, {flat:true, alpha:.55});
+  }
+  // frame jaringan selalu tampak di atas model
+  gl.disable(gl.DEPTH_TEST);
+  sim.dots.forEach(d => { dot(d.pos, .14, d.color, 1); dot(d.pos, .28, d.color, .35); });
+  gl.depthMask(true);
+  drawLabels();
+}
+
+/* ========== 9. PIN HOTSPOT ========== */
+function buildPins() {
+  const box = $('#pins'); box.textContent = '';
+  pinEls = S.item.pins.map((p, i) => {
+    const b = el('button', 'pin', (i+1) + '<span></span>');
+    b.onclick = () => pinClick(i); box.appendChild(b); return b;
+  });
+  updatePins();
+}
+function updatePins() {
+  const q = S.tab === 'kuis' ? quizState() : null;
+  pinEls.forEach((b, i) => {
+    const name = S.item.pins[i][0], label = b.querySelector('span');
+    label.textContent = name; label.hidden = !!q;
+    b.setAttribute('aria-label', q ? 'Pin ' + (i+1) : 'Pin ' + (i+1) + ': ' + name);
+    b.classList.toggle('sel', !q && S.sel === i);
+    b.classList.toggle('right', !!q && q.picked !== null && i === q.order[q.n]);
+    b.classList.toggle('wrong', !!q && q.picked === i && i !== q.order[q.n]);
+  });
+}
+function drawLabels() {
+  const show = S.opt.pins || S.tab === 'kuis', W = canvas.clientWidth;
+  $('#pins').hidden = !show;
+  if (show) {
+    const pts = model.pins.map((p, i) => ({p, i, s: project(p)})).sort((a, b) => a.s[1] - b.s[1]);
+    const r = pinEls[0].offsetWidth / 2;
+    const placed = pts.map(({s}) => ({x: s[0]-r, y: s[1]-r, w: 2*r, h: 2*r}));   // lingkaran pin
+    pts.forEach(({p, i, s}) => {
+      const b = pinEls[i], label = b.querySelector('span');
+      b.style.visibility = s[2] > 0 ? '' : 'hidden';
+      b.style.transform = `translate(${s[0]}px,${s[1]}px)`;
+      b.classList.toggle('cut', p.some((x, k) => S.slice[k] && x > clipValue(k)));
+      if (label.hidden) return;
+      const wd = label.offsetWidth, ht = label.offsetHeight + 2;
+      // coba kanan/kiri lalu geser naik-turun sampai menemukan tempat kosong
+      let best = null;
+      for (const dy of [0, 1, -1, 2, -2, 3, -3]) {
+        for (const flip of [false, true]) {
+          const x = flip ? s[0] - r - 3 - wd : s[0] + r + 3, y = s[1] - ht/2 + dy*ht;
+          if (x < 0 || x + wd > W) continue;
+          if (!placed.some(q => x < q.x+q.w && x+wd > q.x && y < q.y+q.h && y+ht > q.y)) { best = {x, y, w:wd, h:ht, flip, dy}; break; }
+        }
+        if (best) break;
+      }
+      if (!best) best = {x: s[0], y: s[1], w:0, h:0, flip: s[0] + r + 3 + wd > W, dy:0};
+      placed.push(best);
+      b.classList.toggle('flip', best.flip);
+      label.style.setProperty('--dy', best.dy*ht + 'px');
+    });
+  }
+  const tag = $('#tag'), d = sim.dots[0];
+  tag.hidden = !d;
+  if (d) { const s = project(d.pos); tag.textContent = d.text; tag.style.transform = `translate(${s[0] - tag.offsetWidth/2}px,${s[1] - 34}px)`; }
+}
+function pinClick(i) {
+  if (S.tab === 'kuis') return answer(i);
+  S.sel = S.sel === i ? -1 : i;
+  if (S.tab !== 'struktur') setTab('struktur'); else { renderPanel(); updatePins(); }
+  const row = $$('.pinrow')[S.sel]; if (row) row.scrollIntoView({block:'nearest'});
+}
+
+/* ========== 10. PANEL KANAN & KUIS ========== */
+function setTab(t) { S.tab = t; renderPanel(); updatePins(); }
+function newQuiz() {
+  const order = [0,1,2,3,4];
+  for (let i = 4; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [order[i], order[j]] = [order[j], order[i]]; }
+  return quiz[S.item.id] = {order, n:0, score:0, picked:null, done:false, best:(quiz[S.item.id] || {}).best || 0};
+}
+const quizState = () => quiz[S.item.id] || newQuiz();
+function answer(i) {
+  const q = quizState();
+  if (q.done || q.picked !== null) return;
+  q.picked = i; if (i === q.order[q.n]) q.score += 20;
+  renderPanel(); updatePins();
+}
+function nextQuestion() {
+  const q = quizState();
+  if (q.n === 4) { q.done = true; q.best = Math.max(q.best, q.score); q.picked = null; }
+  else { q.n++; q.picked = null; }
+  renderPanel(); updatePins();
+}
+function renderPanel() {
+  const it = S.item, body = $('#body'), keep = body.scrollTop;
+  $$('#tabs button').forEach(b => { const on = b.dataset.tab === S.tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  body.textContent = ''; const ask = $('#ask'); ask.hidden = true;
+  const sec = (title, html) => { const s = el('div', 'sec', (title ? `<h3>${title}</h3>` : '') + (html || '')); body.appendChild(s); return s; };
+  if (S.tab === 'struktur') {
+    sec(it.name, `<p>${it.desc}</p>`);
+    sec('Parameter teknis', '<div class="params">' + it.params.map(p => `<div class="param"><small>${p[0]}</small><b>${p[1]}</b></div>`).join('') + '</div>');
+    const s = sec('Info pin (ketuk untuk detail)');
+    it.pins.forEach((p, i) => {
+      const b = el('button', 'pinrow' + (S.sel === i ? ' on' : ''), `<i>${i+1}</i><div><b>${p[0]}</b>${S.sel === i ? `<small>${p[1]}</small>` : ''}</div>`);
+      b.setAttribute('aria-expanded', S.sel === i); b.onclick = () => pinClick(i); s.appendChild(b);
+    });
+  } else if (S.tab === 'gangguan') {
+    sec('Gangguan umum');
+    it.faults.forEach(f => {
+      const d = el('div', 'fault', `<h4>⚠ ${f[0]}</h4><p><b>Penyebab:</b> ${f[1]}</p><p><b>Dampak:</b> ${f[2]}</p>`);
+      const b = el('button', '', `Tunjukkan pin ${f[3]+1}`);
+      b.onclick = () => { S.sel = f[3]; S.opt.pins = true; syncToolbar(); updatePins(); closeDrawers(); };
+      d.appendChild(b); d.className = 'fault sec'; body.appendChild(d);
+    });
+    updatePins();
+  } else {
+    const q = quizState();
+    sec('', `<div class="score"><div>Skor<br><small>Terbaik: ${q.best}</small></div><b>${q.score}</b></div>`);
+    const restart = () => { newQuiz(); renderPanel(); updatePins(); };
+    if (q.done) {
+      const s = sec('Kuis selesai', `<p>Anda menjawab benar <b>${q.score/20} dari 5</b> soal. ${q.score >= 80 ? 'Sangat baik!' : 'Pelajari lagi tab Struktur, lalu coba ulang.'}</p>`);
+      const b = el('button', 'on', 'Ulangi kuis'); b.onclick = restart; s.appendChild(b);
+    } else {
+      const target = q.order[q.n], text = it.pins[target][2];
+      const s = sec(`Soal ${q.n+1} dari 5`, `<p>${text}</p><p>Klik pin pada model 3D, atau pilih nomornya di bawah.</p>`);
+      const row = el('div', 'answers');
+      for (let i = 0; i < 5; i++) { const b = el('button', '', String(i+1)); b.disabled = q.picked !== null; b.onclick = () => answer(i); row.appendChild(b); }
+      s.appendChild(row);
+      let verdict = '';
+      if (q.picked !== null) {
+        const ok = q.picked === target;
+        verdict = ok ? `✔ Benar! Pin ${target+1}: ${it.pins[target][0]}.` : `✘ Belum tepat. Jawabannya pin ${target+1}: ${it.pins[target][0]}.`;
+        s.appendChild(el('div', 'fb ' + (ok ? 'ok' : 'no'), verdict));
+        const b = el('button', 'on', q.n === 4 ? 'Lihat hasil' : 'Soal berikutnya ›'); b.onclick = nextQuestion; s.appendChild(b);
+      }
+      const r = el('button', '', 'Mulai ulang'); r.onclick = restart; s.appendChild(r);
+      // soal juga tampil di area 3D agar terlihat saat panel tertutup
+      ask.hidden = false;
+      ask.innerHTML = `<b>Soal ${q.n+1}/5 · Skor ${q.score}</b><br>${q.picked === null ? text : verdict}`;
+      if (q.picked !== null) { const b = el('button', 'on', q.n === 4 ? 'Lihat hasil' : 'Berikutnya ›'); b.style.pointerEvents = 'auto'; b.onclick = nextQuestion; ask.append(el('br'), b); }
+    }
+  }
+  body.scrollTop = keep;
+}
+/* ========== 11. KATALOG ========== */
+function renderList() {
+  const q = $('#search').value.trim().toLowerCase(), list = $('#list'); list.textContent = '';
+  ITEMS.forEach((it, i) => {
+    const text = (it.name + ' ' + it.cat + ' ' + it.desc + ' ' + it.pins.map(p => p[0]).join(' ')).toLowerCase();
+    if ((S.filter !== 'Semua' && it.cat !== S.filter) || !text.includes(q)) return;
+    const b = el('button', 'item', `<i>${i+1}</i><div><b>${it.name}</b><small>${it.cat}</small></div>`);
+    if (it === S.item) b.setAttribute('aria-current', 'true');
+    b.onclick = () => { selectItem(it); closeDrawers(); };
+    list.appendChild(b);
+  });
+  if (!list.children.length) list.appendChild(el('p', '', 'Tidak ada hasil.'));
+}
+['Semua','Perangkat','Komponen','Konsep'].forEach(f => {
+  const b = el('button', f === 'Semua' ? 'on' : '', f);
+  b.onclick = () => { S.filter = f; $$('#filters button').forEach(x => x.classList.toggle('on', x === b)); renderList(); };
+  $('#filters').appendChild(b);
+});
+$('#search').oninput = renderList;
+function selectItem(it) {
+  S.item = it; S.sel = -1;
+  cancelFrame();
+  $('#hName').textContent = it.name; $('#hCat').textContent = it.cat;
+  $('#sim').hidden = it.id !== 'star';
+  resetCamera(); buildModel(); buildPins(); renderList(); renderPanel(); updatePins();
+  $('#body').scrollTop = 0;
+}
+function closeDrawers() { $('#catalog').classList.remove('open'); $('#info').classList.remove('open'); }
+$('#openCat').onclick = () => { closeDrawers(); $('#catalog').classList.add('open'); };
+$('#openInfo').onclick = () => { closeDrawers(); $('#info').classList.add('open'); };
+$$('.close').forEach(b => b.onclick = closeDrawers);
+$('#stage').addEventListener('pointerdown', closeDrawers);
+$$('#tabs button').forEach(b => b.onclick = () => { $('#body').scrollTop = 0; setTab(b.dataset.tab); });
+
+/* ========== 12. TOOLBAR ========== */
+function syncToolbar() {
+  $$('[data-opt]').forEach(b => b.setAttribute('aria-pressed', S.opt[b.dataset.opt]));
+  $$('[data-axis]').forEach(b => b.setAttribute('aria-pressed', S.slice[b.dataset.axis]));
+  $$('[data-range]').forEach(r => r.disabled = !S.slice[r.dataset.range]);
+}
+$$('[data-opt]').forEach(b => b.onclick = () => { const k = b.dataset.opt; S.opt[k] = !S.opt[k]; syncToolbar(); });
+$$('[data-axis]').forEach(b => b.onclick = () => { const k = b.dataset.axis; S.slice[k] = !S.slice[k]; syncToolbar(); });
+$$('[data-range]').forEach(r => r.oninput = () => S.pos[r.dataset.range] = r.value/100);
+$('#reset').onclick = () => { resetCamera(); S.opt.spin = false; syncToolbar(); };
+
+/* ========== 13. KONTROL SENTUH & MOUSE ========== */
+const pointers = new Map();
+const zoomBy = f => cam.zoom = Math.min(2.6, Math.max(.3, cam.zoom*f));
+function orbit(dx, dy) { cam.yaw -= dx*.008; cam.pitch = Math.min(1.45, Math.max(-.35, cam.pitch + dy*.006)); }
+function pan(dx, dy) {
+  if (!view) return;
+  const f = V.norm(V.sub(view.t, view.eye)), right = V.norm(V.cross(f, [0,1,0])), up = V.cross(right, f);
+  const k = 2*view.dist*Math.tan(.35)/canvas.clientHeight;
+  cam.pan = V.add(cam.pan, V.add(V.mul(right, -dx*k), V.mul(up, dy*k))).map(v => Math.min(6, Math.max(-6, v)));
+}
+canvas.addEventListener('pointerdown', e => {
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* pointer sudah lepas */ }
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY, pan: e.button === 1 || e.button === 2 || e.shiftKey});
+});
+canvas.addEventListener('pointermove', e => {
+  const p = pointers.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  if (pointers.size === 1) { p.pan ? pan(dx, dy) : orbit(dx, dy); p.x = e.clientX; p.y = e.clientY; return; }
+  const [a, b] = [...pointers.values()];
+  const before = {d: Math.hypot(a.x-b.x, a.y-b.y), x: (a.x+b.x)/2, y: (a.y+b.y)/2};
+  p.x = e.clientX; p.y = e.clientY;
+  const d = Math.hypot(a.x-b.x, a.y-b.y);
+  if (d > 10 && before.d > 10) zoomBy(before.d/d);
+  pan((a.x+b.x)/2 - before.x, (a.y+b.y)/2 - before.y);
+});
+['pointerup','pointercancel','lostpointercapture'].forEach(n => canvas.addEventListener(n, e => pointers.delete(e.pointerId)));
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(Math.max(-100, Math.min(100, e.deltaY))*.0012)); }, {passive:false});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('keydown', e => {
+  const k = {ArrowLeft:() => orbit(-20,0), ArrowRight:() => orbit(20,0), ArrowUp:() => orbit(0,-20), ArrowDown:() => orbit(0,20), '+':() => zoomBy(.9), '=':() => zoomBy(.9), '-':() => zoomBy(1.1)}[e.key];
+  if (k) { e.preventDefault(); k(); }
+});
+
+/* ========== 14. SIMULASI SWITCHING ========== */
+const BROADCAST = 'FF:FF:FF:FF:FF:FF';
+function log(type, title, text) {
+  const li = el('li', type, `<b>${title}</b>${text}`), list = $('#log');
+  list.prepend(li); while (list.children.length > 40) list.lastChild.remove();
+}
+function renderMac(fresh) {
+  const rows = [...sim.mac.entries()].sort((a, b) => a[1] - b[1]);
+  $('#mac').innerHTML = rows.length ? rows.map(([mac, port]) => `<tr class="${mac === fresh ? 'new' : ''}"><td>${port}</td><td class="mono">${mac}</td><td>${HOSTS[port-1].name}</td></tr>`).join('') : '<tr><td colspan="3">Tabel masih kosong</td></tr>';
+}
+function cancelFrame() { sim.anim = null; sim.dots = []; sim.screens = {}; $('#send').disabled = false; }
+function sendFrame() {
+  const s = +$('#src').value, d = +$('#dst').value;
+  if (s === d) return log('drop', 'INFO', 'Pengirim dan tujuan tidak boleh sama.');
+  cancelFrame(); $('#send').disabled = true;
+  sim.anim = {s, d, t:0, phase:'up', targets:[], id:++sim.count};
+  log('', `FRAME #${sim.anim.id}`, `${HOSTS[s].name} → ${d < 0 ? 'Broadcast' : HOSTS[d].name} dikirim.`);
+}
+function switchDecision(a) {
+  const src = HOSTS[a.s], port = a.s + 1, isNew = !sim.mac.has(src.mac);
+  sim.mac.set(src.mac, port); renderMac(src.mac);
+  log('learn', 'LEARNING', isNew ? `MAC ${src.mac} dicatat pada Port ${port}.` : `MAC ${src.mac} sudah ada di Port ${port}; aging timer diperbarui.`);
+  const dstMac = a.d < 0 ? BROADCAST : HOSTS[a.d].mac, out = sim.mac.get(dstMac);
+  if (out) {
+    a.targets = [out-1]; a.flood = false;
+    log('fwd', 'FORWARDING', `${dstMac} ada di Port ${out}. Frame hanya diteruskan ke port itu.`);
+  } else {
+    a.targets = [0,1,2,3].filter(i => i !== a.s); a.flood = true;
+    log('flood', 'FLOODING', `${a.d < 0 ? 'Alamat broadcast' : dstMac + ' belum dikenal'}. Frame dikirim ke Port ${a.targets.map(i => i+1).join(', ')}.`);
+  }
+}
+function stepSim(dt) {
+  const a = sim.anim; if (!a) return;
+  a.t += dt / (a.phase === 'show' ? 1.4 : a.phase === 'switch' ? .7 : 1.6);
+  const t = Math.min(a.t, 1);
+  if (a.phase === 'up') {
+    sim.dots = [{pos: V.add(V.along(HOSTS[a.s].path, t), [0,.18,0]), color:C.yellow, text:'Frame dari ' + HOSTS[a.s].name}];
+    if (a.t >= 1) { a.phase = 'switch'; a.t = 0; switchDecision(a); }
+  } else if (a.phase === 'switch') {
+    sim.dots = [{pos:[0,-.2,0], color:C.cyan, text: a.flood ? 'Flooding' : 'Forwarding'}];
+    if (a.t >= 1) { a.phase = 'down'; a.t = 0; }
+  } else if (a.phase === 'down') {
+    sim.dots = a.targets.map(i => ({pos: V.add(V.along(HOSTS[i].path, 1-t), [0,.18,0]), color: a.flood ? C.orange : C.green, text: a.flood ? 'Flooding' : 'Forwarding'}));
+    if (a.t >= 1) {
+      a.phase = 'show'; a.t = 0; sim.dots = [];
+      a.targets.forEach(i => {
+        const accept = a.d < 0 || i === a.d;
+        sim.screens[i] = accept ? C.green : C.red;
+        log(accept ? 'fwd' : 'drop', accept ? 'DITERIMA' : 'DIBUANG', accept ? `${HOSTS[i].name} menerima frame.` : `${HOSTS[i].name}: MAC tujuan tidak cocok.`);
+      });
+    }
+  } else if (a.t >= 1) cancelFrame();
+}
+HOSTS.forEach((h, i) => { $('#src').add(new Option(h.name, i)); $('#dst').add(new Option(h.name, i)); });
+$('#dst').add(new Option('Broadcast', -1)); $('#dst').value = 1;
+$('#send').onclick = sendFrame;
+$('#clearMac').onclick = () => { cancelFrame(); sim.mac.clear(); sim.count = 0; renderMac(); $('#log').textContent = ''; log('', 'INFO', 'Tabel MAC dikosongkan.'); };
+renderMac(); log('', 'INFO', 'Pilih pengirim dan tujuan, lalu tekan Kirim Frame.');
+
+/* ========== 15. LOOP UTAMA ========== */
+let last = 0;
+function frame(now) {
+  const dt = Math.min((now - last)/1000 || 0, .05); last = now;
+  if (S.opt.live) S.time += dt;
+  if (S.opt.spin && !pointers.size) cam.yaw += dt*.35;
+  stepSim(dt);
+  if (!R.gl.isContextLost() && model) render();
+  requestAnimationFrame(frame);
+}
+syncToolbar();
+selectItem(ITEMS[0]);
+if (R.gl) {
+  buildHolo();
+  canvas.addEventListener('webglcontextlost', e => e.preventDefault());
+  canvas.addEventListener('webglcontextrestored', () => { R.init(); model = null; buildModel(); buildHolo(); });
+  requestAnimationFrame(frame);
+} else $('#nogl').hidden = false;
+</script>
+</body>
+</html>
